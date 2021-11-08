@@ -17,6 +17,7 @@ class Contratos(models.Model):
             if factura:
                 factura.amount_untaxed_invoice_signed=factura.amount_untaxed_invoice_signed/tasa
                 factura.amount_tax_signed=factura.amount_tax_signed/tasa
+                factura.amount_tax=factura.amount_tax/tasa
                 factura.amount_total_signed=factura.amount_total_signed/tasa
                 factura.amount_total=factura.amount_total/tasa
                 factura.amount_untaxed=factura.amount_untaxed/tasa
@@ -27,6 +28,12 @@ class Contratos(models.Model):
             if factura_lineas:
                 for fl in factura_lineas:
                     fl.price_unit=fl.price_unit/tasa
+                    
+            factura_tax=self.env['account.invoice.tax'].search([('invoice_id','=',invoice.id)])
+            if factura_tax:
+                for ft in factura_tax:
+                    ft.amount=ft.amount/tasa
+
         comprobante = self.env['account.move'].search([('id', '=', factura.move_id.id)])
         for c in comprobante:
             c.state='draft'
