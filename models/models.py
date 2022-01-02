@@ -21,8 +21,8 @@ class Contratos(models.Model):
                 factura.amount_total_signed=factura.amount_total_signed/tasa
                 factura.amount_total=factura.amount_total/tasa
                 factura.amount_untaxed=factura.amount_untaxed/tasa
-                factura.residual=factura.amount_total
-                factura.residual_signed=factura.amount_total
+                factura.residual=factura.amount_total/tasa
+                factura.residual_signed=factura.amount_total/tasa
 
             factura_lineas=self.env['account.invoice.line'].search([('invoice_id','=',invoice.id)])
             if factura_lineas:
