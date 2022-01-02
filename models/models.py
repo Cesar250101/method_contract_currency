@@ -23,6 +23,30 @@ class Contratos(models.Model):
                 factura.amount_untaxed=factura.amount_untaxed/tasa
                 factura.residual=factura.residual/tasa
                 factura.residual_signed=factura.residual_signed/tasa
+                #Actualiza el comprobante contable
+                comprobante = self.env['account.move'].search([('id', '=', factura.move_id.id)])
+                for c in comprobante:
+                    c.state='draft'
+                comprobante_lineas=self.env['account.move.line'].search([('move_id','=',factura.move_id.id)])
+                for cl in comprobante_lineas:
+                    debito=cl.debit/tasa
+                    credito=cl.credit/tasa
+                    balance=cl.balance/tasa
+                    if cl.amount_residual!=0:
+                        residual=cl.amount_residual/tasa
+                        self.env.cr.execute("UPDATE account_move_line set debit=%s, credit=%s, amount_residual=%s, balance=%s  WHERE move_id = %s AND id=%s",
+                                            (debito, credito,residual,balance, cl.move_id.id, cl.id))
+                    else:
+                        self.env.cr.execute("UPDATE account_move_line set debit=%s, credit=%s, balance=%s  WHERE move_id = %s AND id=%s",
+                                            (debito, credito,balance, cl.move_id.id, cl.id))
+                factura_id=factura.id
+                self.env.cr.execute("UPDATE account_invoice set residual=amount_total,residual_signed=amount_total,residual_company_signed=amount_total  WHERE id = %s",
+                        (factura_id,))
+
+                for c in comprobante:
+                    c.state='posted'
+                factura._compute_residual()
+
 
             factura_lineas=self.env['account.invoice.line'].search([('invoice_id','=',invoice.id)])
             if factura_lineas:
@@ -34,28 +58,6 @@ class Contratos(models.Model):
                 for ft in factura_tax:
                     ft.amount=ft.amount/tasa
 
-        comprobante = self.env['account.move'].search([('id', '=', factura.move_id.id)])
-        for c in comprobante:
-            c.state='draft'
-        comprobante_lineas=self.env['account.move.line'].search([('move_id','=',factura.move_id.id)])
-        for cl in comprobante_lineas:
-            debito=cl.debit/tasa
-            credito=cl.credit/tasa
-            balance=cl.balance/tasa
-            if cl.amount_residual!=0:
-                residual=cl.amount_residual/tasa
-                self.env.cr.execute("UPDATE account_move_line set debit=%s, credit=%s, amount_residual=%s, balance=%s  WHERE move_id = %s AND id=%s",
-                                    (debito, credito,residual,balance, cl.move_id.id, cl.id))
-            else:
-                self.env.cr.execute("UPDATE account_move_line set debit=%s, credit=%s, balance=%s  WHERE move_id = %s AND id=%s",
-                                    (debito, credito,balance, cl.move_id.id, cl.id))
-        factura_id=factura.id
-        self.env.cr.execute("UPDATE account_invoice set residual=amount_total,residual_signed=amount_total,residual_company_signed=amount_total  WHERE id = %s",
-                (factura_id,))
-
-        for c in comprobante:
-            c.state='posted'
-        factura._compute_residual()
 
 
 
